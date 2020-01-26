@@ -1,10 +1,15 @@
 package guru.springframework.controllers;
 
+import guru.springframework.commands.CustomerForm;
+import guru.springframework.commands.validators.CustomerFormValidator;
 import guru.springframework.domain.Customer;
 import guru.springframework.services.CustomerService;
+import javax.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -17,10 +22,17 @@ import org.springframework.web.bind.annotation.RequestMethod;
 public class CustomerController {
 
     private CustomerService customerService;
+    private CustomerFormValidator customerFormValidator;
 
     @Autowired
     public void setCustomerService(CustomerService customerService) {
         this.customerService = customerService;
+    }
+
+    @Autowired
+    @Qualifier("customerFormValidator")
+    public void setCustomerFormValidator(CustomerFormValidator customerFormValidator) {
+        this.customerFormValidator = customerFormValidator;
     }
 
     @RequestMapping({"/list", "/"})
@@ -43,13 +55,19 @@ public class CustomerController {
 
     @RequestMapping("/new")
     public String newCustomer(Model model){
-        model.addAttribute("customer", new Customer());
+        model.addAttribute("customerForm", new CustomerForm());
         return "customer/customerform";
     }
 
     @RequestMapping(method = RequestMethod.POST)
-    public String saveOrUpdate(Customer customer){
-        Customer newCustomer = customerService.saveOrUpdate(customer);
+    public String saveOrUpdate(@Valid CustomerForm customerForm, BindingResult bindingResult){
+        customerFormValidator.validate(customerForm, bindingResult);
+
+        if (bindingResult.hasErrors()) {
+            return "customer/customerform";
+        }
+
+        Customer newCustomer = customerService.saveOrUpdateCustomerForm(customerForm);
         return "redirect:customer/show/" + newCustomer.getId();
     }
 

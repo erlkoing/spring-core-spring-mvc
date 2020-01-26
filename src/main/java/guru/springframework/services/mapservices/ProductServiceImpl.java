@@ -1,8 +1,12 @@
 package guru.springframework.services.mapservices;
 
+import guru.springframework.commands.ProductForm;
+import guru.springframework.converters.ProductFormToProduct;
+import guru.springframework.converters.ProductToProductForm;
 import guru.springframework.domain.DomainObject;
 import guru.springframework.domain.Product;
 import guru.springframework.services.ProductService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
@@ -14,6 +18,19 @@ import java.util.List;
 @Service
 @Profile("map")
 public class ProductServiceImpl extends AbstractMapService implements ProductService {
+
+    private ProductFormToProduct productFormToProduct;
+    private ProductToProductForm productToProductForm;
+
+    @Autowired
+    public void setProductFormToProduct(ProductFormToProduct productFormToProduct) {
+        this.productFormToProduct = productFormToProduct;
+    }
+
+    @Autowired
+    public void setProductToProductForm(ProductToProductForm productToProductForm) {
+        this.productToProductForm = productToProductForm;
+    }
 
     @Override
     public List<DomainObject> listAll() {
@@ -35,4 +52,20 @@ public class ProductServiceImpl extends AbstractMapService implements ProductSer
         super.delete(id);
     }
 
-   }
+    @Override
+    public ProductForm saveOrUpdateProductForm(ProductForm productForm) {
+
+        if (productForm.getId() != null) {
+            Product productToUpdate = this.getById(productForm.getId());
+            productToUpdate.setVersion(productForm.getVersion());
+            productToUpdate.setDescription(productForm.getDescription());
+            productToUpdate.setPrice(productForm.getPrice());
+            productToUpdate.setImageUrl(productForm.getImageUrl());
+
+            return productToProductForm.convert(this.saveOrUpdate(productToUpdate));
+        } else {
+            return productToProductForm.convert(this.saveOrUpdate(productFormToProduct.convert(productForm)));
+        }
+    }
+
+}
